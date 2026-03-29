@@ -28,6 +28,7 @@ Banking sector fragility in the Central African Economic and Monetary Community 
 EWS-CEMAC-StructuralBreaks/
 │
 ├── code/
+│   ├── 00_data_analysis.py               # Exploratory data analysis — descriptive stats, distributions, correlations
 │   ├── 01_BSI_construction.py            # Banking Stress Indicator — threshold calibration
 │   ├── 02_logit_L2_reference_split.py    # Penalised logistic regression (Logit-L2), 2019 split
 │   ├── 03_random_forest.py               # Random Forest classifier, 2019 split
@@ -82,6 +83,9 @@ pip install -r requirements.txt
 ### 2. Run the scripts in order
 
 ```bash
+# Step 0 — Exploratory data analysis (descriptive statistics, distributions, correlations)
+python code/00_data_analysis.py
+
 # Step 1 — Construct the Banking Stress Indicator
 python code/01_BSI_construction.py
 
