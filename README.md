@@ -63,9 +63,11 @@ The macroeconomic panel (6 CEMAC countries, 2000–2023, N = 144 country-years) 
 |---|---|
 | Real GDP growth, M2 growth, fiscal balance/GDP, public debt/GDP | World Bank WDI — https://databank.worldbank.org |
 | Oil rents/GDP, international reserves | IMF World Economic Outlook — https://www.imf.org/en/Publications/WEO |
-| NPL ratios, capital adequacy, public interventions | BEAC and COBAC Annual Reports and Financial Stability Reports |
+| NPL ratios (% gross loans), bank capital-to-assets ratio — **2010–2023** | World Bank WDI / Global Financial Development Database (observed) |
+| NPL ratios, bank capital-to-assets ratio — **2000–2009** | IMF FSAP CEMAC 2016 (backward extrapolation from observed 2010 anchor) |
+| Public liquidity support / banking restructuring interventions | BEAC and COBAC Annual Reports and Financial Stability Reports (document-coded binary variable) |
 
-> **Note:** Banking supervisory data (NPL, capital adequacy) are drawn from public BEAC/COBAC annual reports. These data are not redistributed in this repository. The `data/` folder contains only model output files (AUC scores, SupLRT statistics, Monte Carlo distributions). To fully replicate the analysis from raw data, please consult the sources above.
+> **Note:** NPL and capital adequacy data for 2010–2023 are taken from the World Bank WDI/GFDD (`Bank nonperforming loans to total gross loans (%)` and `Bank capital to assets ratio (%)`). Values for 2000–2009 are not directly available in public databases for all CEMAC countries and were extrapolated backward from the 2010 observed anchor using the trend documented in the IMF FSAP CEMAC 2016 report. The `data/` folder contains only model output files (AUC scores, SupLRT statistics, Monte Carlo distributions). Raw panel data are not redistributed; please consult the sources above to reconstruct them.
 
 ---
 
