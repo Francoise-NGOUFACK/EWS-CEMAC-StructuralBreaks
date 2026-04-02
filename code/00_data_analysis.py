@@ -1,64 +1,64 @@
-"""
-00_data_analysis.py
-====================
-EWS-CEMAC — Exploratory Data Analysis and Descriptive Statistics
 
-PURPOSE
--------
-This script performs the exploratory data analysis (EDA) reported in
-Section 2 (Data) and Section 3.1 (Variable Selection) of the paper.
-It must be run BEFORE the modelling scripts (01–07).
+# =============================================================================
+# 00_data_analysis.py
+# EWS-CEMAC — Exploratory Data Analysis and Descriptive Statistics
+# =============================================================================
+#
+# PURPOSE
+# -------
+# Performs the exploratory data analysis (EDA) reported in Section 2 (Data)
+# and Section 3.1 (Variable Selection) of the paper.
+# Must be run BEFORE the modelling scripts (01–07).
+#
+# OUTPUTS
+# -------
+# Printed to console:
+#   - Descriptive statistics table (Table 1 in paper)
+#   - Missing data report by variable and country
+#   - Mann-Whitney U test p-values (crisis vs. non-crisis comparison)
+#   - Pairwise Pearson correlations between the 5 EWS predictors
+#
+# Figures saved to figures/:
+#   - Figure_EDA_distributions.png   — histograms of 5 predictors by country
+#   - Figure_EDA_boxplots.png        — boxplots crisis vs. non-crisis
+#   - Figure_EDA_correlation.png     — correlation matrix heatmap
+#   - Figure_EDA_target_timeline.png — BSI stress episodes over 2000–2023
+#
+# DATA REQUIRED
+# -------------
+# Dataset_Macro_CEMAC.csv — balanced panel (6 CEMAC countries × 2000–2023,
+# 144 rows). Not redistributed in this repository (see README — Data Sources).
+#
+# To reconstruct the dataset, merge the following sources:
+#   - World Bank WDI       : GDP growth, M2, fiscal balance, oil rents, reserves
+#   - IMF WEO              : oil rents, reserves (supplementary)
+#   - BEAC/COBAC reports   : NPL, capital adequacy
+#   - IMF FSAP CEMAC 2016  : NPL/capital backward extrapolation (2000–2009)
+#
+# Place Dataset_Macro_CEMAC.csv in the same directory as this script,
+# or update DATA_PATH below.
+#
+# FIVE EWS PREDICTORS (used in scripts 02–07)
+# --------------------------------------------
+#   M2_croissance_pct         — M2 money growth (% YoY)
+#   Solde_budgetaire_pct_PIB  — Fiscal balance (% GDP)
+#   PIB_croissance_reel_pct   — Real GDP growth (%)
+#   Reserves_USD              — Gross international reserves (USD, log-transformed)
+#   Rentes_petrole_pct_PIB    — Oil rents (% GDP)
+#
+# TARGET VARIABLE
+# ---------------
+#   StressScore    — composite Banking Stress Indicator (BSI), 0–5 scale
+#                    (see 01_BSI_construction.py for construction details)
+#   Target_Stress2 — binary EWS target: 1 if StressScore >= 2, else 0
+#
+# AUTHORS
+# -------
+#   Françoise NGOUFACK, Pamphile MEZUI-MBENG, Samba NDIAYE — 2026
+#   "Do Early Warning Systems Survive Structural Breaks?
+#    Macroprudential Evidence from the CEMAC Monetary Union"
+# =============================================================================
 
-OUTPUTS
--------
-  Printed to console:
-    - Descriptive statistics table (Table 1 in paper)
-    - Missing data report by variable and country
-    - Mann-Whitney U test p-values (crisis vs. non-crisis comparison)
-    - Pairwise Pearson correlations between the 5 EWS predictors
-
-  Figures saved to figures/:
-    - Figure_EDA_distributions.png  — histograms of 5 predictors by country
-    - Figure_EDA_boxplots.png       — boxplots crisis vs. non-crisis
-    - Figure_EDA_correlation.png    — correlation matrix heatmap
-    - Figure_EDA_target_timeline.png — BSI stress episodes over 2000-2023
-
-DATA REQUIRED
--------------
-  Dataset_Macro_CEMAC.csv — assembled panel (6 CEMAC countries × 2000–2023).
-  Place it in the same directory as this script, or update DATA_PATH below.
-
-  This file is NOT redistributed in the repository (see README — Data Sources).
-  To reconstruct it, merge:
-    - World Bank WDI (GDP growth, M2, fiscal balance, oil rents, reserves)
-    - IMF WEO (oil rents, reserves — supplementary)
-    - BEAC/COBAC annual reports (NPL, capital adequacy)
-    - IMF FSAP CEMAC 2016 (NPL/capital backward extrapolation for 2000-2009)
-  with a balanced panel structure: Country × Year (144 rows).
-
-FIVE EWS PREDICTORS (used in scripts 02–07)
--------------------------------------------
-  M2_croissance_pct        — M2 money growth (% YoY)
-  Solde_budgetaire_pct_PIB — Fiscal balance (% GDP)
-  PIB_croissance_reel_pct  — Real GDP growth (%)
-  Reserves_USD             — Gross international reserves (USD, log-transformed)
-  Rentes_petrole_pct_PIB   — Oil rents (% GDP)
-
-TARGET VARIABLE
----------------
-  StressScore  — composite Banking Stress Indicator (BSI), 0–5 scale
-                 (see script 01_BSI_construction.py for construction details)
-  Target_Stress2 = 1 if StressScore >= 2  (binary EWS target used in models)
-
-AUTHORS
--------
-  Françoise NGOUFACK, Pamphile MEZUI-MBENG, Samba NDIAYE — 2026
-  Paper: "Do Early Warning Systems Survive Structural Breaks?
-          Macroprudential Evidence from the CEMAC Monetary Union"
-  Journal of Financial Stability [under review]
-"""
-
-import sys
 import os
 import warnings
 import numpy as np
@@ -70,39 +70,40 @@ import matplotlib.ticker as mticker
 import seaborn as sns
 from scipy import stats
 
-sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 warnings.filterwarnings('ignore')
-
-# ══════════════════════════════════════════════════════════════════════════════
+# =============================================================================
 # PATHS
-# ══════════════════════════════════════════════════════════════════════════════
-# Update DATA_PATH to point to your Dataset_Macro_CEMAC.csv file.
+# =============================================================================
+
 DATA_PATH = os.path.join(os.path.dirname(__file__), '..', 'data', 'Dataset_Macro_CEMAC.csv')
 FIG_DIR   = os.path.join(os.path.dirname(__file__), '..', 'figures')
 os.makedirs(FIG_DIR, exist_ok=True)
 
-# ══════════════════════════════════════════════════════════════════════════════
+# =============================================================================
 # VARIABLE DEFINITIONS
-# ══════════════════════════════════════════════════════════════════════════════
+# =============================================================================
 # Five predictors used in the EWS models (scripts 02–07), grouped by
 # economic transmission channel (see Section 3.1 of the paper).
+# Each entry: (column_name, display_label, transmission_channel, expected_sign)
+
 PREDICTORS = [
-    # (column_name, display_label, transmission_channel, expected_sign)
     ('M2_croissance_pct',        'M2 growth (%)',            'Monetary/liquidity', '+'),
     ('Solde_budgetaire_pct_PIB', 'Fiscal balance (% GDP)',   'Fiscal',             '-'),
     ('PIB_croissance_reel_pct',  'Real GDP growth (%)',      'Macro slowdown',     '-'),
     ('Reserves_USD',             'Intl. reserves (log USD)', 'External',           '-'),
     ('Rentes_petrole_pct_PIB',   'Oil rents (% GDP)',        'Commodity shock',    '+'),
 ]
+
 PRED_COLS   = [p[0] for p in PREDICTORS]
 PRED_LABELS = {p[0]: p[1] for p in PREDICTORS}
-PRED_CHAN   = {p[0]: p[2] for p in PREDICTORS}
+PRED_CHAN    = {p[0]: p[2] for p in PREDICTORS}
 PRED_SIGN   = {p[0]: p[3] for p in PREDICTORS}
 
-TARGET      = 'StressScore'
-TARGET_BIN  = 'Target_Stress2'
+TARGET     = 'StressScore'
+TARGET_BIN = 'Target_Stress2'
 
-COUNTRIES   = ['Cameroon', 'CAR', 'Chad', 'Congo', 'Equatorial Guinea', 'Gabon']
+COUNTRIES = ['Cameroon', 'CAR', 'Chad', 'Congo', 'Equatorial Guinea', 'Gabon']
+
 COLORS_CTRY = {
     'Cameroon':          '#1F3864',
     'CAR':               '#C0392B',
@@ -112,20 +113,20 @@ COLORS_CTRY = {
     'Gabon':             '#E67E22',
 }
 
+# Matplotlib global style — clean academic look
 plt.rcParams.update({
-    'font.family':      'DejaVu Sans',
-    'figure.dpi':       150,
-    'axes.spines.top':  False,
-    'axes.spines.right':False,
-    'axes.grid':        True,
-    'grid.alpha':       0.3,
-    'grid.linestyle':   '--',
-    'font.size':        9,
+    'font.family':       'DejaVu Sans',
+    'figure.dpi':        150,
+    'axes.spines.top':   False,
+    'axes.spines.right': False,
+    'axes.grid':         True,
+    'grid.alpha':        0.3,
+    'grid.linestyle':    '--',
+    'font.size':         9,
 })
-
-# ══════════════════════════════════════════════════════════════════════════════
+# =============================================================================
 # 1. LOAD DATA
-# ══════════════════════════════════════════════════════════════════════════════
+# =============================================================================
 print("=" * 70)
 print("  EWS-CEMAC  |  Exploratory Data Analysis")
 print("=" * 70)
@@ -153,12 +154,12 @@ print(f"\n  Panel loaded: {len(df)} observations | "
 print(f"  Target (StressScore >= 2): {df[TARGET_BIN].sum()} stress episodes "
       f"({df[TARGET_BIN].mean()*100:.1f}% of obs)")
 
-# ══════════════════════════════════════════════════════════════════════════════
+# =============================================================================
 # 2. MISSING DATA REPORT
-# ══════════════════════════════════════════════════════════════════════════════
-print("\n" + "─" * 70)
+# =============================================================================
+print("\n" + "=" * 70)
 print("  MISSING DATA REPORT")
-print("─" * 70)
+print("=" * 70)
 print(f"  {'Variable':<35} {'N_obs':>5}  {'Missing':>7}  {'% Valid':>7}")
 print(f"  {'─'*35} {'─'*5}  {'─'*7}  {'─'*7}")
 for col in PRED_COLS:
@@ -224,12 +225,12 @@ for row in desc_rows:
     if abs(row['Skewness']) > 1.0:
         print(f"    → {row['Variable']}: skewness = {row['Skewness']} → median imputation")
 
-# ══════════════════════════════════════════════════════════════════════════════
+# =============================================================================
 # 4. CRISIS vs. NON-CRISIS COMPARISON (Mann-Whitney U test)
-# ══════════════════════════════════════════════════════════════════════════════
-print("\n" + "─" * 70)
+# =============================================================================
+print("\n" + "=" * 70)
 print("  CRISIS vs. NON-CRISIS COMPARISON (Mann-Whitney U test)")
-print("─" * 70)
+print("=" * 70)
 print(f"  {'Variable':<35} {'Mean(0)':>8} {'Mean(1)':>8} {'p-value':>9} {'Sig.':>5}")
 print(f"  {'─'*35} {'─'*8} {'─'*8} {'─'*9} {'─'*5}")
 
@@ -252,12 +253,12 @@ if TARGET_BIN in df.columns:
               f"{pval:>9.4f} {sig:>5}")
     print("  Significance: *** p<0.01  ** p<0.05  * p<0.10")
 
-# ══════════════════════════════════════════════════════════════════════════════
+# =============================================================================
 # 5. CORRELATION MATRIX
-# ══════════════════════════════════════════════════════════════════════════════
-print("\n" + "─" * 70)
+# =============================================================================
+print("\n" + "=" * 70)
 print("  PAIRWISE PEARSON CORRELATIONS (5 EWS predictors)")
-print("─" * 70)
+print("=" * 70)
 
 avail_cols = [c for c in PRED_COLS if c in df.columns]
 if avail_cols:
@@ -267,9 +268,9 @@ if avail_cols:
     print(corr_df.round(3).to_string())
     print("\n  Note: |r| < 0.30 between all pairs → no multicollinearity concern.")
 
-# ══════════════════════════════════════════════════════════════════════════════
+# =============================================================================
 # 6. FIGURES
-# ══════════════════════════════════════════════════════════════════════════════
+# =============================================================================
 
 # ── 6a. Distribution histograms by country ───────────────────────────────────
 avail_pred = [p for p in PREDICTORS if p[0] in df.columns]
