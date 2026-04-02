@@ -1,6 +1,5 @@
 # Do Early Warning Systems Survive Structural Breaks? Macroprudential Evidence from the CEMAC Monetary Union
 
-**Replication code and data for the paper submitted to the *Journal of Financial Stability***
 
 ---
 
